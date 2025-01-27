@@ -44,6 +44,13 @@ function Service:Get(url, headers, data, cb)
     args[#args + 1] = h
   end
 
+  -- Debug: Print curl command
+  local debug_cmd = "curl " .. url .. " -d @" .. tmpfname
+  for _, h in ipairs(headers) do
+    debug_cmd = debug_cmd .. " -H '" .. h .. "'"
+  end
+  vim.notify("Debug - curl command:\n" .. debug_cmd)
+
   job
     :new({
       command = 'curl',
@@ -53,13 +60,14 @@ function Service:Get(url, headers, data, cb)
         if exit_code ~= 0 then
           vim.notify('An Error Occurred ...', vim.log.levels.ERROR)
           cb({ { error = 'ERROR: API Error' } })
+          return
         end
 
         local result = table.concat(response:result(), '\n')
+        -- Debug: Print raw response
+        vim.notify("Debug - API Response:\n" .. result)
+        
         local json = self:json_decode(result)
-        if type(self.params.raw_response_cb) == 'function' then
-          self.params.raw_response_cb(json)
-        end
         if json == nil then
           cb({ { error = 'No Response.' } })
         else
