@@ -1,35 +1,43 @@
 local requests = require('cmp_ai.requests')
 
 OpenAI = requests:new(nil)
-BASE_URL = 'https://api.openai.com/v1/chat/completions'
 
 function OpenAI:new(o, params)
   o = o or {}
   setmetatable(o, self)
   self.__index = self
+  
+  -- Merge user params with defaults
   self.params = vim.tbl_deep_extend('keep', params or {}, {
     model = 'gpt-3.5-turbo',
     temperature = 0.1,
     n = 1,
+    base_url = 'https://api.openai.com/v1/chat/completions',
+    api_key_env = 'OPENAI_API_KEY',
+    additional_headers = {},
   })
 
-  self.api_key = os.getenv('OPENAI_API_KEY')
+  -- Get API key from env var or direct config
+  self.api_key = self.params.api_key or os.getenv(self.params.api_key_env)
   if not self.api_key then
     vim.schedule(function()
-      vim.notify('OPENAI_API_KEY environment variable not set', vim.log.levels.ERROR)
+      vim.notify(string.format('%s environment variable or api_key not set', self.params.api_key_env), vim.log.levels.ERROR)
     end)
     self.api_key = 'NO_KEY'
   end
-  self.headers = {
-    'Authorization: Bearer ' .. self.api_key,
-  }
+
+  -- Setup headers with auth and any additional headers
+  self.headers = vim.tbl_extend('force',
+    { 'Authorization: Bearer ' .. self.api_key },
+    vim.tbl_map(function(v, k) return k .. ': ' .. v end, self.params.additional_headers)
+  )
   return o
 end
 
 function OpenAI:complete(lines_before, lines_after, cb)
-  if not self.api_key then
+  if not self.api_key or self.api_key == 'NO_KEY' then
     vim.schedule(function()
-      vim.notify('OPENAI_API_KEY environment variable not set', vim.log.levels.ERROR)
+      vim.notify('API key not configured', vim.log.levels.ERROR)
     end)
     return
   end
@@ -59,16 +67,39 @@ Your answer should be:
     },
   }
   data = vim.tbl_deep_extend('keep', data, self.params)
-  self:Get(BASE_URL, self.headers, data, function(answer)
+  self:Get(self.params.base_url, self.headers, data, function(answer)
     local new_data = {}
-    if answer.choices then
-      for _, response in ipairs(answer.choices) do
-        local entry = response.message.content:gsub('<end_code_middle>', '')
-        entry = entry:gsub('```', '')
-        table.insert(new_data, entry)
-      end
+    
+    -- Handle API errors
+    if answer.error then
+      local error_msg = answer.error.message or "Unknown API error"
+      vim.schedule(function()
+        vim.notify("API Error: " .. error_msg, vim.log.levels.ERROR)
+      end)
+      cb({ { error = error_msg } })
+      return
     end
-    cb(new_data)
+    
+    -- Handle successful responses
+    if answer.choices and #answer.choices > 0 then
+      for _, response in ipairs(answer.choices) do
+        -- Handle both standard OpenAI and compatible API response formats
+        local content = response.message and response.message.content or response.text
+        if content then
+          local entry = content:gsub('<end_code_middle>', '')
+          entry = entry:gsub('```', '')
+          table.insert(new_data, entry)
+        end
+      end
+      cb(new_data)
+    else
+      -- Handle unexpected response format
+      local error_msg = "Unexpected API response format"
+      vim.schedule(function()
+        vim.notify(error_msg, vim.log.levels.ERROR)
+      end)
+      cb({ { error = error_msg } })
+    end
   end)
 end
 
