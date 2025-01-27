@@ -58,8 +58,13 @@ end
 function Source:end_complete(data, ctx, cb)
   local items = {}
   for _, response in ipairs(data) do
+    -- Skip error responses
+    if type(response) == 'table' and response.error then
+      goto continue
+    end
+    
     local prefix = string.sub(ctx.context.cursor_before_line, ctx.offset)
-    local result = prefix .. response
+    local result = prefix .. tostring(response)
     table.insert(items, {
       cmp = {
         kind_hl_group = 'CmpItemKind' .. conf:get('provider').name,
@@ -71,6 +76,7 @@ function Source:end_complete(data, ctx, cb)
         value = '```' .. (vim.filetype.match({ buf = 0 }) or '') .. '\n' .. result .. '\n```',
       },
     })
+    ::continue::
   end
   cb({
     items = items,
