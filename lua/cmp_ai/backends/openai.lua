@@ -13,7 +13,8 @@ function OpenAI:new(o, params)
     model = params.model or 'gpt-3.5-turbo',
     temperature = params.temperature or 0.1,
     n = params.n or 1,
-    base_url = params.base_url or 'https://api.openai.com/v1/chat/completions',
+    base_url = params.base_url and (params.base_url:gsub("/$", "") .. "/v1/chat/completions") 
+              or 'https://api.openai.com/v1/chat/completions',
     api_key_env = params.api_key_env or 'OPENAI_API_KEY',
     additional_headers = params.additional_headers or {},
   }
