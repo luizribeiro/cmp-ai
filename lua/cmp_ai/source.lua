@@ -15,9 +15,6 @@ function Source:get_debug_name()
 end
 
 function Source:_do_complete(ctx, cb)
-  if conf:get('notify') then
-    conf:get('notify_callback')('Completion started')
-  end
   local max_lines = conf:get('max_lines')
   local cursor = ctx.context.cursor
   local cur_line = ctx.context.cursor_line
@@ -40,9 +37,6 @@ function Source:_do_complete(ctx, cb)
   local service = conf:get('provider')
   service:complete(before, after, function(data)
     self:end_complete(data, ctx, cb)
-    if conf:get('notify') then
-      conf:get('notify_callback')('Completion started')
-    end
   end)
 end
 
