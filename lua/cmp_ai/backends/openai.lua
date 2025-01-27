@@ -8,17 +8,18 @@ function OpenAI:new(o, params)
   self.__index = self
   
   -- Merge user params with defaults
-  self.params = vim.tbl_deep_extend('keep', params or {}, {
-    model = 'gpt-3.5-turbo',
-    temperature = 0.1,
-    n = 1,
-    base_url = 'https://api.openai.com/v1/chat/completions',
-    api_key_env = 'OPENAI_API_KEY',
-    additional_headers = {},
-  })
+  params = params or {}
+  self.params = {
+    model = params.model or 'gpt-3.5-turbo',
+    temperature = params.temperature or 0.1,
+    n = params.n or 1,
+    base_url = params.base_url or 'https://api.openai.com/v1/chat/completions',
+    api_key_env = params.api_key_env or 'OPENAI_API_KEY',
+    additional_headers = params.additional_headers or {},
+  }
 
   -- Get API key from env var or direct config
-  self.api_key = self.params.api_key or os.getenv(self.params.api_key_env)
+  self.api_key = params.api_key or os.getenv(self.params.api_key_env)
   if not self.api_key then
     vim.schedule(function()
       vim.notify(string.format('%s environment variable or api_key not set', self.params.api_key_env), vim.log.levels.ERROR)
