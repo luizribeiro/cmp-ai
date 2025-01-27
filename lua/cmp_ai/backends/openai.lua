@@ -7,9 +7,6 @@ function OpenAI:new(o, params)
   setmetatable(o, self)
   self.__index = self
   
-  -- Debug: Print incoming params
-  vim.notify("Debug - OpenAI backend params:\n" .. vim.inspect(params))
-  
   -- Merge user params with defaults
   params = params or {}
   self.params = {
@@ -20,9 +17,6 @@ function OpenAI:new(o, params)
     api_key_env = params.api_key_env or 'OPENAI_API_KEY',
     additional_headers = params.additional_headers or {},
   }
-  
-  -- Debug: Print final params
-  vim.notify("Debug - OpenAI backend final params:\n" .. vim.inspect(self.params))
 
   -- Get API key from env var or direct config
   self.api_key = params.api_key or os.getenv(self.params.api_key_env)
@@ -76,9 +70,6 @@ Your answer should be:
     temperature = self.params.temperature,
     n = self.params.n,
   }
-  
-  -- Debug: Print request data
-  vim.notify("Debug - Request data:\n" .. vim.inspect(data))
   
   self:Get(self.params.base_url, self.headers, data, function(answer)
     local new_data = {}
