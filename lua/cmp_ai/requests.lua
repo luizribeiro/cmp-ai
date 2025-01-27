@@ -44,13 +44,6 @@ function Service:Get(url, headers, data, cb)
     args[#args + 1] = h
   end
 
-  -- Debug: Print curl command
-  local debug_cmd = "curl " .. url .. " -d @" .. tmpfname
-  for _, h in ipairs(headers) do
-    debug_cmd = debug_cmd .. " -H '" .. h .. "'"
-  end
-  vim.notify("Debug - curl command:\n" .. debug_cmd)
-
   job
     :new({
       command = 'curl',
@@ -64,9 +57,6 @@ function Service:Get(url, headers, data, cb)
         end
 
         local result = table.concat(response:result(), '\n')
-        -- Debug: Print raw response
-        vim.notify("Debug - API Response:\n" .. result)
-        
         local json = self:json_decode(result)
         if json == nil then
           cb({ { error = 'No Response.' } })
