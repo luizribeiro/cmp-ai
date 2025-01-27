@@ -29,7 +29,7 @@ function OpenAI:new(o, params)
   -- Setup headers with auth and any additional headers
   self.headers = vim.tbl_extend('force',
     { 'Authorization: Bearer ' .. self.api_key },
-    vim.tbl_map(function(v, k) return k .. ': ' .. v end, self.params.additional_headers)
+    vim.tbl_map(function(k, v) return k .. ': ' .. v end, self.params.additional_headers)
   )
   return o
 end
@@ -91,7 +91,15 @@ Your answer should be:
           table.insert(new_data, entry)
         end
       end
-      cb(new_data)
+      if #new_data > 0 then
+        cb(new_data)
+      else
+        local error_msg = "No valid completions in response"
+        vim.schedule(function()
+          vim.notify(error_msg, vim.log.levels.ERROR)
+        end)
+        cb({ { error = error_msg } })
+      end
     else
       -- Handle unexpected response format
       local error_msg = "Unexpected API response format"
